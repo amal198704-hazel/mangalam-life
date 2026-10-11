@@ -1,0 +1,2116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beneficiary & Payment Management</title>
+    <!-- Roboto Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS for Native Excel Export -->
+    <!-- Add these PWA tags inside <head> -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mangalam LIFE">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- (Existing link and script tags remain here) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --color-bg-canvas: #f1f5f9;
+            --color-surface-container: #ffffff;
+            --color-surface-card: #ffffff;
+            --color-surface-subtle: #f8fafc;
+            --color-surface-highlight: #f1f5f9;
+
+            --color-text-primary: #0f172a;
+            --color-text-secondary: #475569;
+            --color-text-muted: #64748b;
+            --color-border-subtle: #e2e8f0;
+
+            --color-primary: #4f46e5;
+            --color-primary-hover: #4338ca;
+            --color-primary-fg: #ffffff;
+
+            /* Semantic Stage Badges */
+            --stage-notstarted-bg: #f1f5f9;
+            --stage-notstarted-text: #475569;
+            --stage-notstarted-border: #cbd5e1;
+
+            --stage-basement-bg: #e0f2fe;
+            --stage-basement-text: #0369a1;
+            --stage-basement-border: #bae6fd;
+
+            --stage-lintel-bg: #ede9fe;
+            --stage-lintel-text: #6d28d9;
+            --stage-lintel-border: #ddd6fe;
+
+            --stage-roof-bg: #fef3c7;
+            --stage-roof-text: #b45309;
+            --stage-roof-border: #fde68a;
+
+            --stage-completed-bg: #ecfdf5;
+            --stage-completed-text: #065f46;
+            --stage-completed-border: #a7f3d0;
+
+            --stage-other-bg: #f3f4f6;
+            --stage-other-text: #374151;
+            --stage-other-border: #d1d5db;
+
+            --color-danger-bg: #fef2f2;
+            --color-danger-text: #991b1b;
+            --color-danger-border: #fecaca;
+
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-full: 9999px;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Roboto", -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--color-bg-canvas);
+            color: var(--color-text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 1.5rem 1rem 6rem;
+        }
+
+        .container {
+            background-color: var(--color-surface-container);
+            width: 100%;
+            max-width: 1080px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border-subtle);
+            box-shadow: var(--shadow-md);
+            overflow: visible;
+        }
+
+        .header-section {
+            background-color: var(--color-primary);
+            color: var(--color-primary-fg);
+            padding: 1.25rem 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            border-top-left-radius: var(--radius-lg);
+            border-top-right-radius: var(--radius-lg);
+        }
+
+        .header-section h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .sync-status {
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.3rem 0.75rem;
+            border-radius: var(--radius-full);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .btn-refresh {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: #ffffff;
+            padding: 0.3rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-refresh:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .btn-excel {
+            background-color: #107c41;
+            color: #ffffff;
+            border: 1px solid #0b5e31;
+            padding: 0.5rem 0.9rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .btn-excel:hover {
+            background-color: #0b6a36;
+            box-shadow: 0 2px 6px rgba(16, 124, 65, 0.3);
+        }
+
+        .sticky-filter-bar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-bottom: 2px solid var(--color-border-subtle);
+            padding: 0.85rem 1.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .filter-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1 1 200px;
+            min-width: 170px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.55rem 0.75rem 0.55rem 2.2rem;
+            font-size: 0.85rem;
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-md);
+            background-color: var(--color-surface-subtle);
+            color: var(--color-text-primary);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .search-box input:focus {
+            background-color: #ffffff;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-text-muted);
+            pointer-events: none;
+        }
+
+        .custom-dropdown {
+            position: relative;
+            flex: 0 1 165px;
+        }
+
+        .dropdown-trigger {
+            width: 100%;
+            padding: 0.55rem 0.75rem;
+            font-size: 0.85rem;
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-md);
+            background-color: var(--color-surface-subtle);
+            color: var(--color-text-secondary);
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .dropdown-trigger:hover {
+            border-color: var(--color-primary);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            width: 220px;
+            max-height: 250px;
+            overflow-y: auto;
+            background: #ffffff;
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            padding: 0.5rem;
+            display: none;
+            z-index: 60;
+        }
+
+        .dropdown-menu.open {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.85rem;
+            color: var(--color-text-primary);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--color-surface-subtle);
+        }
+
+        .dropdown-item input[type="checkbox"] {
+            accent-color: var(--color-primary);
+            cursor: pointer;
+        }
+
+        .filter-select {
+            flex: 0 1 155px;
+            padding: 0.55rem 0.75rem;
+            font-size: 0.85rem;
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-md);
+            background-color: var(--color-surface-subtle);
+            color: var(--color-text-secondary);
+            font-weight: 500;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            border-color: var(--color-primary);
+        }
+
+        .btn-clear-filters {
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-decoration: underline;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .btn-clear-filters:hover {
+            color: var(--color-danger-text);
+        }
+
+        .filter-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+        }
+
+        .selected-tags {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+
+        .tag-pill {
+            background-color: #e0e7ff;
+            color: var(--color-primary);
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: var(--radius-full);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .tag-pill.life-tag {
+            background-color: #f3e8ff;
+            color: #6b21a8;
+        }
+
+        .tag-remove {
+            cursor: pointer;
+            font-size: 0.85rem;
+            line-height: 1;
+        }
+
+        .card-list {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--color-surface-card);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-header {
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--color-surface-subtle);
+            border-bottom: 1px solid var(--color-border-subtle);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .meta-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            flex-wrap: wrap;
+        }
+
+        .separator {
+            color: var(--color-text-muted);
+        }
+
+        .header-badges {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ward-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.625rem;
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+            background-color: var(--color-surface-container);
+            color: var(--color-text-secondary);
+            border: 1px solid var(--color-border-subtle);
+        }
+
+        .life-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.6rem;
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+            background-color: #f3e8ff;
+            color: #6b21a8;
+            border: 1px solid #e9d5ff;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.65rem;
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            text-transform: capitalize;
+        }
+
+        .stage-not-started {
+            background-color: var(--stage-notstarted-bg);
+            color: var(--stage-notstarted-text);
+            border-color: var(--stage-notstarted-border);
+        }
+
+        .stage-basement {
+            background-color: var(--stage-basement-bg);
+            color: var(--stage-basement-text);
+            border-color: var(--stage-basement-border);
+        }
+
+        .stage-lintel {
+            background-color: var(--stage-lintel-bg);
+            color: var(--stage-lintel-text);
+            border-color: var(--stage-lintel-border);
+        }
+
+        .stage-roof {
+            background-color: var(--stage-roof-bg);
+            color: var(--stage-roof-text);
+            border-color: var(--stage-roof-border);
+        }
+
+        .stage-completed {
+            background-color: var(--stage-completed-bg);
+            color: var(--stage-completed-text);
+            border-color: var(--stage-completed-border);
+        }
+
+        .stage-other {
+            background-color: var(--stage-other-bg);
+            color: var(--stage-other-text);
+            border-color: var(--stage-other-border);
+        }
+
+        .card-body {
+            display: grid;
+            grid-template-columns: 1fr 1.6fr;
+            gap: 1.5rem;
+            padding: 1.25rem;
+        }
+
+        .payment-section {
+            min-width: 0;
+        }
+
+        @media (max-width: 860px) {
+            .card-body {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .section-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--color-text-primary);
+            text-decoration: underline;
+            text-underline-offset: 4px;
+        }
+
+        .account-pill-btn {
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            color: var(--color-primary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .account-pill-btn:hover {
+            background: var(--color-primary);
+            color: var(--color-primary-fg);
+            border-color: var(--color-primary);
+        }
+
+        .info-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .info-row {
+            display: flex;
+            line-height: 1.4;
+        }
+
+        .info-label {
+            color: var(--color-text-secondary);
+            font-weight: 500;
+            min-width: 155px;
+            flex-shrink: 0;
+        }
+
+        .info-value {
+            color: var(--color-text-primary);
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        /* Responsive Horizontal Scroll Wrapper */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-sm);
+        }
+
+        .payment-table {
+            width: 100%;
+            min-width: 520px;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+
+        .payment-table th {
+            background-color: var(--color-surface-subtle);
+            color: var(--color-text-secondary);
+            font-weight: 600;
+            padding: 0.55rem 0.65rem;
+            border-bottom: 1px solid var(--color-border-subtle);
+            white-space: nowrap;
+        }
+
+        .payment-table td {
+            padding: 0.55rem 0.65rem;
+            border-bottom: 1px solid var(--color-border-subtle);
+            color: var(--color-text-primary);
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .payment-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .empty-payment {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--color-text-muted);
+            font-size: 0.85rem;
+        }
+
+        .fund-pill {
+            font-size: 0.75rem;
+            background: #eef2ff;
+            color: var(--color-primary);
+            padding: 0.2rem 0.5rem;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .card-footer {
+            background-color: var(--color-surface-subtle);
+            border-top: 1px solid var(--color-border-subtle);
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .action-btn-secondary {
+            background: #ffffff;
+            border: 1px solid var(--color-border-subtle);
+            color: var(--color-primary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.35rem 0.75rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .action-btn-secondary:hover {
+            border-color: var(--color-primary);
+            background-color: #f5f3ff;
+        }
+
+        .total-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .total-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .total-amount {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .state-feedback {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--color-text-muted);
+            font-size: 0.95rem;
+        }
+
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 3px solid var(--color-primary);
+            width: 24px;
+            height: 24px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 0.75rem;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: var(--color-primary);
+            color: var(--color-primary-fg);
+            border: none;
+            border-radius: var(--radius-full);
+            padding: 0.875rem 1.4rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 100;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .fab:hover {
+            background-color: var(--color-primary-hover);
+            transform: translateY(-2px);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: var(--color-surface-container);
+            width: 100%;
+            max-width: 650px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--color-border-subtle);
+        }
+
+        .modal-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--color-border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--color-surface-subtle);
+        }
+
+        .modal-header h3 {
+            font-size: 1.1rem;
+            color: var(--color-text-primary);
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-body {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .modal-beneficiary-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--color-primary);
+            background: #eef2ff;
+            padding: 0.2rem 0.65rem;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+        }
+
+        .payment-table-head {
+            display: grid;
+            grid-template-columns: 140px 1.8fr 130px 120px 36px;
+            gap: 0.6rem;
+            padding: 0.4rem 0.75rem;
+            background: var(--color-surface-subtle);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.5rem;
+        }
+
+        .payment-card-row {
+            display: grid;
+            grid-template-columns: 140px 1.8fr 130px 120px 36px;
+            gap: 0.6rem;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            background: #ffffff;
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-md);
+            margin-bottom: 0.5rem;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .payment-card-row:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+        }
+
+        .payment-input-control {
+            width: 100%;
+            padding: 0.5rem 0.65rem;
+            font-size: 0.85rem;
+            font-family: inherit;
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-sm);
+            background: var(--color-surface-subtle);
+            color: var(--color-text-primary);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .payment-input-control:focus {
+            background: #ffffff;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.12);
+        }
+
+        .currency-input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .currency-symbol {
+            position: absolute;
+            left: 0.6rem;
+            color: var(--color-text-muted);
+            font-size: 0.85rem;
+            font-weight: 600;
+            pointer-events: none;
+        }
+
+        .currency-input-wrap input {
+            padding-left: 1.5rem;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+        }
+
+        .btn-delete-row {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border: 1px solid #fee2e2;
+            color: #ef4444;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-delete-row:hover {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .btn-add-installment {
+            width: 100%;
+            border: 1.5px dashed #c7d2fe;
+            background: #f8fafc;
+            color: var(--color-primary);
+            padding: 0.65rem;
+            border-radius: var(--radius-md);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            transition: all 0.2s ease;
+            margin-top: 0.4rem;
+        }
+
+        .btn-add-installment:hover {
+            background: #eef2ff;
+            border-color: var(--color-primary);
+        }
+
+        .modal-batch-summary {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            padding: 0.6rem 0.85rem;
+            background: var(--color-surface-subtle);
+            border-radius: var(--radius-sm);
+            margin-top: 0.75rem;
+            border: 1px solid var(--color-border-subtle);
+        }
+
+        .batch-total-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+        }
+
+        .batch-total-val {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.85rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 0.55rem 0.65rem;
+            font-family: inherit;
+            font-size: 0.875rem;
+            color: var(--color-text-primary);
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--color-primary);
+        }
+
+        .modal-footer {
+            padding: 1rem 1.25rem;
+            border-top: 1px solid var(--color-border-subtle);
+            background: var(--color-surface-subtle);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .btn-cancel {
+            background: #ffffff;
+            border: 1px solid var(--color-border-subtle);
+            color: var(--color-text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-submit {
+            background: var(--color-primary);
+            color: var(--color-primary-fg);
+            border: none;
+            padding: 0.5rem 1.25rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 680px) {
+            .payment-table-head {
+                display: none;
+            }
+
+            .payment-card-row {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+                padding: 0.75rem;
+            }
+
+            .btn-delete-row {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header-section">
+            <h1>Beneficiary Records Directory</h1>
+            <div class="header-actions">
+                <span class="sync-status" id="syncStatus">Connecting...</span>
+                <button class="btn-refresh" onclick="fetchBeneficiariesFromSheets()">Refresh</button>
+            </div>
+        </header>
+
+        <!-- STICKY FILTER BAR -->
+        <div class="sticky-filter-bar">
+            <div class="filter-controls">
+                <!-- Search Box -->
+                <div class="search-box">
+                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="searchInput" placeholder="Search Name, ID, Reg, AC..."
+                        oninput="handleFilterChange()">
+                </div>
+
+                <!-- Life Category Multi-Select Dropdown -->
+                <div class="custom-dropdown" id="lifeCategoryDropdown">
+                    <div class="dropdown-trigger" onclick="toggleLifeDropdown(event)">
+                        <span id="lifeCategoryTriggerLabel">All Life Categories</span>
+                        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="dropdown-menu" id="lifeCategoryDropdownMenu"></div>
+                </div>
+
+                <!-- Multiple Ward Dropdown -->
+                <div class="custom-dropdown" id="wardDropdown">
+                    <div class="dropdown-trigger" onclick="toggleWardDropdown(event)">
+                        <span id="wardTriggerLabel">All Wards</span>
+                        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="dropdown-menu" id="wardDropdownMenu"></div>
+                </div>
+
+                <!-- Stage Filter -->
+                <select class="filter-select" id="stageFilter" onchange="handleFilterChange()">
+                    <option value="">All Stages</option>
+                </select>
+
+                <!-- Clear Filters Button -->
+                <button class="btn-clear-filters" id="clearFiltersBtn" onclick="resetAllFilters()">Clear</button>
+
+                <!-- Download Excel Button -->
+                <button class="btn-excel" onclick="exportToExcel()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download Excel
+                </button>
+            </div>
+
+            <!-- Stats & Filter Chips -->
+            <div class="filter-meta">
+                <span id="resultsCount">Showing 0 of 0 beneficiaries</span>
+                <div class="selected-tags" id="selectedFilterTags"></div>
+            </div>
+        </div>
+
+        <!-- Dynamic Card Container -->
+        <main class="card-list" id="beneficiaryContainer">
+            <div class="state-feedback">
+                <div class="spinner"></div>
+                Loading data from Google Sheets...
+            </div>
+        </main>
+    </div>
+
+    <!-- Floating Action Button -->
+    <button class="fab" id="openBeneficiaryModalBtn">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+        </svg>
+        Add Beneficiary
+    </button>
+
+    <!-- Modal 1: Add Beneficiary -->
+    <div class="modal-overlay" id="beneficiaryModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add New Beneficiary</h3>
+                <button class="close-modal" onclick="closeModal('beneficiaryModal')">&times;</button>
+            </div>
+            <form id="beneficiaryForm">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Beneficiary ID</label>
+                            <input type="text" id="beneId" required placeholder="e.g. 972597">
+                        </div>
+                        <div class="form-group">
+                            <label>Reg No</label>
+                            <input type="text" id="regNo" required placeholder="e.g. 1">
+                        </div>
+                        <div class="form-group">
+                            <label>Life Category</label>
+                            <select id="lifeCategory" required>
+                                <option value="Phase II">Phase II</option>
+                                <option value="Phase III">Phase III</option>
+                                <option value="Addnl LH">Addnl LH</option>
+                                <option value="Addnl LL">Addnl LL</option>
+                                <option value="2020 LH">2020 LH</option>
+                                <option value="2020 LL">2020 LL</option>
+                                <option value="EPEP LH">EPEP LH</option>
+                                <option value="EPEP LL">EPEP LL</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Ward</label>
+                            <input type="text" id="ward" required placeholder="e.g. 17">
+                        </div>
+                        <div class="form-group">
+                            <label>Construction Stage</label>
+                            <select id="stage"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Social Category</label>
+                            <select id="category">
+                                <option value="GENERAL">GENERAL</option>
+                                <option value="OBC">OBC</option>
+                                <option value="SC">SC</option>
+                                <option value="ST">ST</option>
+                                <option value="MINORITY">MINORITY</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Beneficiary Name</label>
+                            <input type="text" id="beneName" required placeholder="Full Name">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Address</label>
+                            <textarea id="address" rows="2" required
+                                placeholder="Door No, Street, Post, PIN"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Mobile Number</label>
+                            <input type="text" id="mobile" placeholder="Mobile Number">
+                        </div>
+                        <div class="form-group">
+                            <label>Ration Card No</label>
+                            <input type="text" id="rationCard" placeholder="e.g. 2054009000">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Primary Bank Account Number (Stored as Plain Text)</label>
+                            <input type="text" id="acNumber" required placeholder="e.g. 014903650364190001">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeModal('beneficiaryModal')">Cancel</button>
+                    <button type="submit" class="btn-submit" id="saveBeneBtn">Save to Google Sheets</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Manage Accounts & Add Heir -->
+    <div class="modal-overlay" id="accountsModal">
+        <div class="modal" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3 id="accountsModalTitle">Linked Bank Accounts</h3>
+                <button class="close-modal" onclick="closeModal('accountsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="accountsList"
+                    style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 0.5rem;"></div>
+
+                <div style="border-top: 1px solid var(--color-border-subtle); padding-top: 1rem;">
+                    <h4
+                        style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.6rem; color: var(--color-text-primary);">
+                        + Link Legal Heir / Alternate Account
+                    </h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Payee Name (Heir)</label>
+                            <input type="text" id="newHeirName" placeholder="e.g. Subhash (Son)">
+                        </div>
+                        <div class="form-group">
+                            <label>Account Number (Preserves 0s)</label>
+                            <input type="text" id="newHeirAccount" placeholder="Bank Account Number">
+                        </div>
+                    </div>
+                    <button type="button" class="btn-submit" style="margin-top: 0.75rem; width: 100%;"
+                        onclick="saveHeirAccount()">
+                        Link Heir Account
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeModal('accountsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: Add Payments -->
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal" style="max-width: 820px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                    <h3 id="paymentModalTitle" style="font-size: 1.15rem; font-weight: 700;">Record Disbursements</h3>
+                    <span class="modal-beneficiary-tag" id="paymentModalBeneTag"></span>
+                </div>
+                <button class="close-modal" onclick="closeModal('paymentModal')">&times;</button>
+            </div>
+            <form id="paymentForm">
+                <div class="modal-body">
+                    <input type="hidden" id="payBeneId">
+                    <input type="hidden" id="payRegNo">
+
+                    <p style="font-size: 0.85rem; color: var(--color-text-secondary);">
+                        Select the credited bank account and installment details. Installment dates are recorded in
+                        Indian format (dd/mm/yyyy).
+                    </p>
+
+                    <!-- Column Headers -->
+                    <div class="payment-table-head">
+                        <span>Disbursement Date</span>
+                        <span>Credited Payee & Account</span>
+                        <span style="text-align: right;">Amount (₹)</span>
+                        <span>Fund Type</span>
+                        <span></span>
+                    </div>
+
+                    <!-- Installment Rows Container -->
+                    <div id="paymentRowsContainer"></div>
+
+                    <!-- Add Row Button -->
+                    <button type="button" class="btn-add-installment" id="addPaymentRowBtn">
+                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Another Installment
+                    </button>
+
+                    <!-- Real-time Batch Calculation Summary -->
+                    <div class="modal-batch-summary">
+                        <span class="batch-total-label">Batch Total:</span>
+                        <span class="batch-total-val" id="batchTotalAmount">₹ 0</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeModal('paymentModal')">Cancel</button>
+                    <button type="submit" class="btn-submit" id="savePaymentBtn">Save Payments to Sheets</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3IH6VLVIAI0DsEWqmFpsT036BdzbBCwDxzubZy_Qjaa-ykSLaykROT8wU_cBFFhfSNg/exec";
+
+        let beneficiariesData = [];
+        let filteredData = [];
+        let selectedWards = new Set();
+        let selectedLifeCategories = new Set();
+        let currentActiveBeneId = null;
+        let activeBeneAccounts = [];
+
+        function setStatus(text, isError = false) {
+            const el = document.getElementById("syncStatus");
+            el.textContent = text;
+            el.style.backgroundColor = isError ? "rgba(239, 68, 68, 0.4)" : "rgba(255, 255, 255, 0.2)";
+        }
+
+        function formatCurrency(num) {
+            return "₹ " + Number(num || 0).toLocaleString('en-IN');
+        }
+
+        function toIndianDateFormat(dateVal) {
+            if (!dateVal) return '-';
+            const s = String(dateVal).trim();
+            if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(s)) {
+                return s.split(' ')[0];
+            }
+            if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+                const parts = s.substring(0, 10).split('-');
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            const d = new Date(dateVal);
+            if (!isNaN(d.getTime())) {
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+            return s;
+        }
+
+        function isoToIndian(isoDateStr) {
+            if (!isoDateStr) return '';
+            const parts = isoDateStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return isoDateStr;
+        }
+
+        function getStageBadgeClass(rawStage) {
+            const stage = String(rawStage || '').trim().toLowerCase();
+            if (stage === 'ns' || stage.includes('not started')) return 'stage-not-started';
+            if (stage === 'base' || stage.includes('basement')) return 'stage-basement';
+            if (stage.includes('lintel')) return 'stage-lintel';
+            if (stage.includes('roof')) return 'stage-roof';
+            if (stage.includes('completed')) return 'stage-completed';
+            return 'stage-other';
+        }
+
+        async function fetchBeneficiariesFromSheets() {
+            const container = document.getElementById("beneficiaryContainer");
+            container.innerHTML = `
+                <div class="state-feedback">
+                    <div class="spinner"></div>
+                    Connecting to Google Sheets...
+                </div>
+            `;
+            setStatus("Fetching...");
+
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: "GET",
+                    redirect: "follow"
+                });
+
+                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+                const result = await response.json();
+
+                if (result.status === "success" && Array.isArray(result.data)) {
+                    beneficiariesData = result.data;
+                    setStatus(`● Connected (${beneficiariesData.length} records)`);
+
+                    populateWardOptions();
+                    populateLifeCategoryOptions();
+                    populateStageOptions();
+                    applyFilters();
+                } else {
+                    throw new Error(result.message || "Invalid response format from script.");
+                }
+            } catch (err) {
+                console.error("Error fetching sheet data:", err);
+                setStatus("Sync Error", true);
+                container.innerHTML = `
+                    <div class="state-feedback" style="color: var(--color-danger-text);">
+                        <p><strong>Failed to load data from Google Sheets</strong></p>
+                        <p style="font-size: 0.85rem; margin-top: 0.5rem; color: var(--color-text-muted);">${err.message}</p>
+                        <button class="action-btn-secondary" style="margin-top: 1rem;" onclick="fetchBeneficiariesFromSheets()">Retry Connection</button>
+                    </div>
+                `;
+            }
+        }
+
+        function populateStageOptions() {
+            const stageSelect = document.getElementById("stageFilter");
+            const modalStageSelect = document.getElementById("stage");
+
+            const rawStagesSet = new Set();
+            beneficiariesData.forEach(b => {
+                if (b.stage !== undefined && b.stage !== null && String(b.stage).trim() !== "") {
+                    rawStagesSet.add(String(b.stage).trim());
+                }
+            });
+
+            function getPriority(val) {
+                const s = val.toLowerCase();
+                if (s === 'not started' || s === 'ns') return 1;
+                if (s === 'basement' || s === 'base') return 2;
+                if (s === 'lintel') return 3;
+                if (s === 'roof') return 4;
+                return 99;
+            }
+
+            const sortedStages = Array.from(rawStagesSet).sort((a, b) => {
+                const pA = getPriority(a);
+                const pB = getPriority(b);
+                if (pA !== pB) return pA - pB;
+                return a.localeCompare(b, undefined, { sensitivity: 'base' });
+            });
+
+            if (sortedStages.length === 0) {
+                sortedStages.push("Not Started", "Basement", "Lintel", "Roof", "COMPLETED");
+            }
+
+            const currentFilterVal = stageSelect.value;
+            stageSelect.innerHTML = `<option value="">All Stages</option>` +
+                sortedStages.map(st => `<option value="${st}">${st}</option>`).join("");
+            stageSelect.value = currentFilterVal;
+
+            modalStageSelect.innerHTML = sortedStages.map(st => `<option value="${st}">${st}</option>`).join("");
+        }
+
+        // Populate Multiple Life Category Options
+        function populateLifeCategoryOptions() {
+            const lifeMenu = document.getElementById("lifeCategoryDropdownMenu");
+            const predefinedCategories = [
+                "Phase II", "Phase III", "Addnl LH", "Addnl LL",
+                "2020 LH", "2020 LL", "EPEP LH", "EPEP LL"
+            ];
+            const categoriesSet = new Set(predefinedCategories);
+
+            beneficiariesData.forEach(b => {
+                if (b.lifeCategory && String(b.lifeCategory).trim() !== "") {
+                    categoriesSet.add(String(b.lifeCategory).trim());
+                }
+            });
+
+            const sortedCategories = Array.from(categoriesSet).sort((a, b) => a.localeCompare(b));
+
+            lifeMenu.innerHTML = sortedCategories.map(cat => `
+                <label class="dropdown-item">
+                    <input type="checkbox" value="${cat}" onchange="toggleLifeCategorySelection('${cat}')" ${selectedLifeCategories.has(cat) ? 'checked' : ''}>
+                    <span>${cat}</span>
+                </label>
+            `).join("");
+        }
+
+        function toggleLifeDropdown(e) {
+            e.stopPropagation();
+            document.getElementById("wardDropdownMenu").classList.remove("open");
+            document.getElementById("lifeCategoryDropdownMenu").classList.toggle("open");
+        }
+
+        function toggleLifeCategorySelection(category) {
+            if (selectedLifeCategories.has(category)) {
+                selectedLifeCategories.delete(category);
+            } else {
+                selectedLifeCategories.add(category);
+            }
+            updateFilterMetaDisplay();
+            applyFilters();
+        }
+
+        function removeLifeCategoryFilter(category) {
+            selectedLifeCategories.delete(category);
+            populateLifeCategoryOptions();
+            updateFilterMetaDisplay();
+            applyFilters();
+        }
+
+        // Populate Multiple Ward Options
+        function populateWardOptions() {
+            const wardMenu = document.getElementById("wardDropdownMenu");
+            const wardsSet = new Set();
+
+            beneficiariesData.forEach(b => {
+                if (b.ward !== undefined && b.ward !== null && String(b.ward).trim() !== "") {
+                    wardsSet.add(String(b.ward).trim());
+                }
+            });
+
+            const sortedWards = Array.from(wardsSet).sort((a, b) => {
+                const numA = parseInt(a, 10);
+                const numB = parseInt(b, 10);
+                return !isNaN(numA) && !isNaN(numB) ? numA - numB : a.localeCompare(b);
+            });
+
+            wardMenu.innerHTML = sortedWards.map(ward => `
+                <label class="dropdown-item">
+                    <input type="checkbox" value="${ward}" onchange="toggleWardSelection('${ward}')" ${selectedWards.has(ward) ? 'checked' : ''}>
+                    <span>Ward ${ward}</span>
+                </label>
+            `).join("");
+        }
+
+        function toggleWardDropdown(e) {
+            e.stopPropagation();
+            document.getElementById("lifeCategoryDropdownMenu").classList.remove("open");
+            document.getElementById("wardDropdownMenu").classList.toggle("open");
+        }
+
+        window.addEventListener("click", () => {
+            const wardMenu = document.getElementById("wardDropdownMenu");
+            const lifeMenu = document.getElementById("lifeCategoryDropdownMenu");
+            if (wardMenu) wardMenu.classList.remove("open");
+            if (lifeMenu) lifeMenu.classList.remove("open");
+        });
+
+        document.getElementById("wardDropdownMenu").addEventListener("click", e => e.stopPropagation());
+        document.getElementById("lifeCategoryDropdownMenu").addEventListener("click", e => e.stopPropagation());
+
+        function toggleWardSelection(ward) {
+            if (selectedWards.has(ward)) {
+                selectedWards.delete(ward);
+            } else {
+                selectedWards.add(ward);
+            }
+            updateFilterMetaDisplay();
+            applyFilters();
+        }
+
+        function removeWardFilter(ward) {
+            selectedWards.delete(ward);
+            populateWardOptions();
+            updateFilterMetaDisplay();
+            applyFilters();
+        }
+
+        function updateFilterMetaDisplay() {
+            // Update Ward trigger
+            const wardTriggerLabel = document.getElementById("wardTriggerLabel");
+            if (selectedWards.size === 0) {
+                wardTriggerLabel.innerText = "All Wards";
+            } else if (selectedWards.size === 1) {
+                wardTriggerLabel.innerText = `Ward: ${Array.from(selectedWards)[0]}`;
+            } else {
+                wardTriggerLabel.innerText = `${selectedWards.size} Wards Selected`;
+            }
+
+            // Update Life Category trigger
+            const lifeTriggerLabel = document.getElementById("lifeCategoryTriggerLabel");
+            if (selectedLifeCategories.size === 0) {
+                lifeTriggerLabel.innerText = "All Life Categories";
+            } else if (selectedLifeCategories.size === 1) {
+                lifeTriggerLabel.innerText = `${Array.from(selectedLifeCategories)[0]}`;
+            } else {
+                lifeTriggerLabel.innerText = `${selectedLifeCategories.size} Categories Selected`;
+            }
+
+            // Render tags
+            const tagsContainer = document.getElementById("selectedFilterTags");
+            const lifeTagsHtml = Array.from(selectedLifeCategories).map(cat => `
+                <span class="tag-pill life-tag">
+                    ${cat}
+                    <span class="tag-remove" onclick="removeLifeCategoryFilter('${cat}')">&times;</span>
+                </span>
+            `).join("");
+
+            const wardTagsHtml = Array.from(selectedWards).map(w => `
+                <span class="tag-pill">
+                    Ward ${w}
+                    <span class="tag-remove" onclick="removeWardFilter('${w}')">&times;</span>
+                </span>
+            `).join("");
+
+            tagsContainer.innerHTML = lifeTagsHtml + wardTagsHtml;
+        }
+
+        function handleFilterChange() {
+            applyFilters();
+        }
+
+        function resetAllFilters() {
+            document.getElementById("searchInput").value = "";
+            document.getElementById("stageFilter").value = "";
+            selectedWards.clear();
+            selectedLifeCategories.clear();
+            populateWardOptions();
+            populateLifeCategoryOptions();
+            updateFilterMetaDisplay();
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const query = document.getElementById("searchInput").value.trim().toLowerCase();
+            const stageFilterVal = document.getElementById("stageFilter").value.trim().toLowerCase();
+
+            filteredData = beneficiariesData.filter(bene => {
+                if (selectedLifeCategories.size > 0) {
+                    const beneLife = String(bene.lifeCategory || "").trim();
+                    if (!selectedLifeCategories.has(beneLife)) return false;
+                }
+
+                if (selectedWards.size > 0) {
+                    const beneWard = String(bene.ward || "").trim();
+                    if (!selectedWards.has(beneWard)) return false;
+                }
+
+                if (stageFilterVal) {
+                    const beneStage = String(bene.stage || "").trim().toLowerCase();
+                    if (beneStage !== stageFilterVal) return false;
+                }
+
+                if (query) {
+                    const name = String(bene.name || "").toLowerCase();
+                    const id = String(bene.beneficiaryId || "").toLowerCase();
+                    const reg = String(bene.regNo || "").toLowerCase();
+                    const mobile = String(bene.mobile || "").toLowerCase();
+                    const ration = String(bene.rationCardNo || "").toLowerCase();
+                    const address = String(bene.address || "").toLowerCase();
+                    const lifeCat = String(bene.lifeCategory || "").toLowerCase();
+                    const accounts = (bene.accounts || []).map(a => String(a.accountNumber || "")).join(" ");
+
+                    const matches = name.includes(query) ||
+                        id.includes(query) ||
+                        reg.includes(query) ||
+                        mobile.includes(query) ||
+                        ration.includes(query) ||
+                        address.includes(query) ||
+                        lifeCat.includes(query) ||
+                        accounts.includes(query);
+
+                    if (!matches) return false;
+                }
+
+                return true;
+            });
+
+            document.getElementById("resultsCount").innerText =
+                `Showing ${filteredData.length} of ${beneficiariesData.length} beneficiaries`;
+
+            renderCards();
+        }
+
+        function renderCards() {
+            const container = document.getElementById("beneficiaryContainer");
+
+            if (filteredData.length === 0) {
+                container.innerHTML = `
+                    <div class="state-feedback">
+                        <p><strong>No matching beneficiaries found.</strong></p>
+                        <p style="font-size:0.85rem; margin-top:0.25rem;">Try adjusting your search terms or clearing category/ward/stage filters.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = "";
+
+            filteredData.forEach(bene => {
+                const accounts = bene.accounts || [];
+                const accountsCount = accounts.length > 0 ? accounts.length : 1;
+                const payments = bene.payments || [];
+                const totalDisbursed = payments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+                const displayStage = bene.stage || 'Not Started';
+                const stageClass = getStageBadgeClass(displayStage);
+                const lifeCat = bene.lifeCategory || '';
+
+                const fundTotals = {};
+                payments.forEach(p => {
+                    const fType = p.fundType || 'Other';
+                    fundTotals[fType] = (fundTotals[fType] || 0) + Number(p.amount || 0);
+                });
+
+                const fundBreakdownHtml = Object.entries(fundTotals)
+                    .map(([type, amt]) => `<span class="fund-pill">${type}: ₹${Number(amt).toLocaleString('en-IN')}</span>`)
+                    .join(" ");
+
+                const card = document.createElement("article");
+                card.className = "card";
+
+                let paymentRowsHtml = "";
+                if (payments.length > 0) {
+                    paymentRowsHtml = payments.map(p => `
+                        <tr>
+                            <td>${toIndianDateFormat(p.date)}</td>
+                            <td>${p.name || '-'}</td>
+                            <td style="font-family: monospace;">${p.account || '-'}</td>
+                            <td class="text-right">${Number(p.amount).toLocaleString('en-IN')}</td>
+                            <td>${p.fundType || '-'}</td>
+                        </tr>
+                    `).join("");
+                } else {
+                    paymentRowsHtml = `<tr><td colspan="5" class="empty-payment">No payments recorded yet.</td></tr>`;
+                }
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="meta-info">
+                            <span class="id-pill">ID: ${bene.beneficiaryId || '-'}</span>
+                            <span class="separator">|</span>
+                            <span class="reg-number">Reg: ${bene.regNo || '-'}</span>
+                            ${lifeCat ? `<span class="life-badge">${lifeCat}</span>` : ''}
+                        </div>
+                        <div class="header-badges">
+                            <span class="ward-badge">Ward: ${bene.ward || '-'}</span>
+                            <span class="status-badge ${stageClass}">${displayStage}</span>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <!-- Left: Beneficiary Details -->
+                        <section class="beneficiary-section">
+                            <div class="section-title-wrap">
+                                <h2 class="section-title">Beneficiary Info</h2>
+                            </div>
+                            <div class="info-list">
+                                <div class="info-row">
+                                    <span class="info-label">Bene. Name :</span>
+                                    <span class="info-value">${bene.name || '-'}</span>
+                                </div>
+                                ${lifeCat ? `
+                                <div class="info-row">
+                                    <span class="info-label">Life Category :</span>
+                                    <span class="info-value" style="color: #6b21a8;">${lifeCat}</span>
+                                </div>` : ''}
+                                <div class="info-row">
+                                    <span class="info-label">Address :</span>
+                                    <span class="info-value">${(bene.address || '-').replace(/\n/g, '<br>')}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Mobile :</span>
+                                    <span class="info-value" style="font-family: monospace;">${bene.mobile || '-'}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Ration Card :</span>
+                                    <span class="info-value" style="font-family: monospace;">${bene.rationCardNo || '-'}</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Right: Horizontally Scrollable Payment Table -->
+                        <section class="payment-section">
+                            <div class="section-title-wrap">
+                                <h2 class="section-title">Payment Info</h2>
+                                <button class="account-pill-btn" onclick="openAccountsModal('${bene.beneficiaryId}')">
+                                    (${accountsCount} Account${accountsCount > 1 ? 's' : ''})
+                                </button>
+                            </div>
+                            <div class="table-wrapper">
+                                <table class="payment-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Name</th>
+                                            <th>Account No</th>
+                                            <th class="text-right">Amount (₹)</th>
+                                            <th>Fund Type</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${paymentRowsHtml}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Card Footer -->
+                    <footer class="card-footer">
+                        <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                            <button class="action-btn-secondary" onclick="openPaymentModal('${bene.beneficiaryId}')">
+                                + Add Payment
+                            </button>
+                            <div class="fund-pills-container" style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                                ${fundBreakdownHtml}
+                            </div>
+                        </div>
+                        <div class="total-wrap">
+                            <span class="total-label">Total Disbursed:</span>
+                            <span class="total-amount">${formatCurrency(totalDisbursed)}</span>
+                        </div>
+                    </footer>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Export to Excel with Mobile Number
+        function exportToExcel() {
+            const dataset = (filteredData && filteredData.length > 0) ? filteredData : beneficiariesData;
+
+            if (!dataset || dataset.length === 0) {
+                alert("No beneficiary records available to export.");
+                return;
+            }
+
+            const rows = dataset.map(bene => {
+                const totalPaid = (bene.payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+                return {
+                    "Life Category": String(bene.lifeCategory || ''),
+                    "Reg No": String(bene.regNo || ''),
+                    "Name": String(bene.name || ''),
+                    "Mobile Number": String(bene.mobile || ''),
+                    "Address": String(bene.address || '').replace(/\n/g, ', '),
+                    "Ward": String(bene.ward || ''),
+                    "Ration Card": String(bene.rationCardNo || ''),
+                    "Category": String(bene.category || 'GENERAL'),
+                    "Stage": String(bene.stage || ''),
+                    "Paid Amount": totalPaid
+                };
+            });
+
+            const headers = [
+                "Life Category",
+                "Reg No",
+                "Name",
+                "Mobile Number",
+                "Address",
+                "Ward",
+                "Ration Card",
+                "Category",
+                "Stage",
+                "Paid Amount"
+            ];
+
+            const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
+
+            const range = XLSX.utils.decode_range(worksheet['!ref']);
+            for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                const regCell = worksheet[XLSX.utils.encode_cell({ r: R, c: 1 })];
+                if (regCell) { regCell.t = 's'; }
+
+                const mobileCell = worksheet[XLSX.utils.encode_cell({ r: R, c: 3 })];
+                if (mobileCell) { mobileCell.t = 's'; }
+
+                const rcCell = worksheet[XLSX.utils.encode_cell({ r: R, c: 6 })];
+                if (rcCell) { rcCell.t = 's'; }
+            }
+
+            worksheet['!cols'] = [
+                { wch: 16 }, // Life Category
+                { wch: 10 }, // Reg No
+                { wch: 24 }, // Name
+                { wch: 15 }, // Mobile Number
+                { wch: 38 }, // Address
+                { wch: 8 },  // Ward
+                { wch: 18 }, // Ration Card
+                { wch: 12 }, // Category
+                { wch: 14 }, // Stage
+                { wch: 15 }  // Paid Amount
+            ];
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Beneficiary Summary");
+
+            const today = new Date();
+            const dateStr = `${String(today.getDate()).padStart(2, '0')}_${String(today.getMonth() + 1).padStart(2, '0')}_${today.getFullYear()}`;
+            XLSX.writeFile(workbook, `Beneficiary_Export_${dateStr}.xlsx`);
+        }
+
+        function openModal(id) { document.getElementById(id).classList.add("active"); }
+        function closeModal(id) { document.getElementById(id).classList.remove("active"); }
+
+        document.getElementById("openBeneficiaryModalBtn").addEventListener("click", () => {
+            document.getElementById("beneficiaryForm").reset();
+            openModal("beneficiaryModal");
+        });
+
+        function openAccountsModal(beneId) {
+            currentActiveBeneId = beneId;
+            const bene = beneficiariesData.find(b => String(b.beneficiaryId) === String(beneId));
+            if (!bene) return;
+
+            document.getElementById("accountsModalTitle").innerText = `Accounts for ${bene.name}`;
+            const listEl = document.getElementById("accountsList");
+
+            const accounts = bene.accounts || [];
+            if (accounts.length === 0 && bene.acNumber) {
+                accounts.push({ holderName: bene.name, accountNumber: String(bene.acNumber), isPrimary: true });
+            }
+
+            listEl.innerHTML = accounts.map(acc => `
+                <div style="display:flex; justify-content:space-between; align-items:center; background: var(--color-surface-subtle); padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border-subtle);">
+                    <div>
+                        <strong style="font-size: 0.88rem; display:block; color: var(--color-text-primary);">${acc.holderName}</strong>
+                        <span style="font-size: 0.82rem; color: var(--color-text-muted); font-family: monospace;">A/C: ${String(acc.accountNumber)}</span>
+                    </div>
+                    ${acc.isPrimary
+                    ? '<span class="ward-badge" style="font-size:0.7rem;">Primary</span>'
+                    : '<span class="ward-badge" style="font-size:0.7rem; background:#fee2e2; color:#991b1b; border-color:#fecaca;">Legal Heir</span>'}
+                </div>
+            `).join('');
+
+            openModal("accountsModal");
+        }
+
+        function saveHeirAccount() {
+            const name = document.getElementById("newHeirName").value.trim();
+            const ac = String(document.getElementById("newHeirAccount").value).trim();
+            if (!name || !ac) {
+                alert("Please provide both heir payee name and account number.");
+                return;
+            }
+
+            const bene = beneficiariesData.find(b => String(b.beneficiaryId) === String(currentActiveBeneId));
+            if (bene) {
+                if (!bene.accounts) bene.accounts = [];
+                const exists = bene.accounts.some(a => String(a.accountNumber) === ac);
+                if (!exists) {
+                    bene.accounts.push({ holderName: name, accountNumber: ac, isPrimary: false });
+                }
+                applyFilters();
+                openAccountsModal(currentActiveBeneId);
+                document.getElementById("newHeirName").value = "";
+                document.getElementById("newHeirAccount").value = "";
+            }
+        }
+
+        function openPaymentModal(beneId) {
+            const bene = beneficiariesData.find(b => String(b.beneficiaryId) === String(beneId));
+            if (!bene) return;
+
+            document.getElementById("paymentModalTitle").innerText = `Add Payments`;
+            document.getElementById("paymentModalBeneTag").innerHTML = `
+                <strong>${bene.name}</strong> (Reg: ${bene.regNo})
+            `;
+            document.getElementById("payBeneId").value = bene.beneficiaryId;
+            document.getElementById("payRegNo").value = bene.regNo;
+
+            activeBeneAccounts = bene.accounts && bene.accounts.length > 0
+                ? bene.accounts
+                : [{ holderName: bene.name, accountNumber: String(bene.acNumber || ''), isPrimary: true }];
+
+            const container = document.getElementById("paymentRowsContainer");
+            container.innerHTML = "";
+            addPaymentRow();
+
+            updateBatchTotal();
+            openModal("paymentModal");
+        }
+
+        function addPaymentRow() {
+            const container = document.getElementById("paymentRowsContainer");
+            const div = document.createElement("div");
+            div.className = "payment-card-row";
+
+            const todayISO = new Date().toISOString().split('T')[0];
+
+            const accountOptions = activeBeneAccounts.map(acc => `
+                <option value="${String(acc.accountNumber)}" data-name="${acc.holderName}">
+                    ${acc.holderName} (${String(acc.accountNumber)})
+                </option>
+            `).join("");
+
+            div.innerHTML = `
+                <input type="date" class="payment-input-control pay-date-input" value="${todayISO}" required>
+                <select required class="payment-input-control payee-select">${accountOptions}</select>
+                <div class="currency-input-wrap">
+                    <span class="currency-symbol">₹</span>
+                    <input type="number" class="payment-input-control pay-amt-input" placeholder="0" min="1" step="1" required oninput="updateBatchTotal()">
+                </div>
+                <select required class="payment-input-control fund-type-select">
+                    <option value="Plan">Plan</option>
+                    <option value="SS">SS</option>
+                    <option value="DP">DP</option>
+                    <option value="Loans">Loans</option>
+                </select>
+                <button type="button" class="btn-delete-row" title="Remove installment" onclick="removePaymentRow(this)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+            `;
+            container.appendChild(div);
+            updateBatchTotal();
+        }
+
+        function removePaymentRow(btn) {
+            const row = btn.closest(".payment-card-row");
+            if (document.querySelectorAll("#paymentRowsContainer .payment-card-row").length > 1) {
+                row.remove();
+            } else {
+                row.querySelector(".pay-amt-input").value = "";
+            }
+            updateBatchTotal();
+        }
+
+        function updateBatchTotal() {
+            let sum = 0;
+            const inputs = document.querySelectorAll("#paymentRowsContainer .pay-amt-input");
+            inputs.forEach(inp => {
+                sum += Number(inp.value) || 0;
+            });
+            document.getElementById("batchTotalAmount").innerText = "₹ " + sum.toLocaleString('en-IN');
+        }
+
+        document.getElementById("addPaymentRowBtn").addEventListener("click", addPaymentRow);
+
+        document.getElementById("beneficiaryForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const btn = document.getElementById("saveBeneBtn");
+            btn.disabled = true;
+            btn.innerText = "Saving...";
+
+            const newBene = {
+                beneficiaryId: String(document.getElementById("beneId").value).trim(),
+                acNumber: String(document.getElementById("acNumber").value).trim(),
+                lifeCategory: document.getElementById("lifeCategory").value,
+                regNo: String(document.getElementById("regNo").value).trim(),
+                name: document.getElementById("beneName").value.trim(),
+                address: document.getElementById("address").value.trim(),
+                mobile: String(document.getElementById("mobile").value).trim(),
+                rationCardNo: String(document.getElementById("rationCard").value).trim(),
+                category: document.getElementById("category").value,
+                ward: String(document.getElementById("ward").value).trim(),
+                stage: document.getElementById("stage").value
+            };
+
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action: "ADD_BENEFICIARY", data: newBene })
+                });
+
+                closeModal("beneficiaryModal");
+                await fetchBeneficiariesFromSheets();
+            } catch (err) {
+                alert("Error saving beneficiary: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Save to Google Sheets";
+            }
+        });
+
+        document.getElementById("paymentForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const btn = document.getElementById("savePaymentBtn");
+            btn.disabled = true;
+            btn.innerText = "Saving...";
+
+            const beneId = String(document.getElementById("payBeneId").value).trim();
+            const regNo = String(document.getElementById("payRegNo").value).trim();
+
+            const rowElements = document.querySelectorAll("#paymentRowsContainer .payment-card-row");
+            const newPayments = [];
+
+            rowElements.forEach(row => {
+                const dateInput = row.querySelector(".pay-date-input");
+                const selectAccount = row.querySelector(".payee-select");
+                const amountInput = row.querySelector(".pay-amt-input");
+                const fundSelect = row.querySelector(".fund-type-select");
+
+                const selectedOption = selectAccount.options[selectAccount.selectedIndex];
+                const payeeName = selectedOption.getAttribute("data-name") || "";
+                const accountNumber = String(selectedOption.value).trim();
+                const indianDate = isoToIndian(dateInput.value);
+
+                newPayments.push({
+                    beneficiaryId: beneId,
+                    regNo: regNo,
+                    name: payeeName,
+                    account: accountNumber,
+                    date: indianDate,
+                    amount: Number(amountInput.value),
+                    fundType: fundSelect.value
+                });
+            });
+
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action: "ADD_PAYMENT", data: newPayments })
+                });
+
+                closeModal("paymentModal");
+                await fetchBeneficiariesFromSheets();
+            } catch (err) {
+                alert("Error saving payments: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Save Payments to Sheets";
+            }
+        });
+
+        window.addEventListener("DOMContentLoaded", fetchBeneficiariesFromSheets);
+    </script>
+    <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('PWA Service Worker registered:', reg.scope))
+                    .catch(err => console.error('Service Worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+
+</html>
