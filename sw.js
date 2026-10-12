@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mangalam-life-v1';
+const CACHE_NAME = 'mangalam-life-v2';
 
 // Static assets needed to run the app UI
 const STATIC_ASSETS = [
