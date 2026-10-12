@@ -932,6 +932,28 @@
             text-transform: uppercase;
         }
 
+        /* Interactive Click-to-Edit Stage Badge */
+        .status-badge.editable-stage {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            user-select: none;
+        }
+
+        .status-badge.editable-stage:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+            filter: brightness(0.95);
+        }
+
+        .stage-edit-icon {
+            width: 12px;
+            height: 12px;
+            opacity: 0.7;
+        }
+
         .batch-total-val {
             font-size: 1.05rem;
             font-weight: 700;
@@ -1298,7 +1320,41 @@
             </form>
         </div>
     </div>
+    <!-- Modal 4: Edit Construction Stage -->
+    <div class="modal-overlay" id="stageModal">
+        <div class="modal" style="max-width: 440px;">
+            <div class="modal-header">
+                <h3>Update Construction Stage</h3>
+                <button class="close-modal" onclick="closeModal('stageModal')">&times;</button>
+            </div>
+            <form id="stageForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editStageBeneId">
+                    <input type="hidden" id="editStageRegNo">
 
+                    <p style="font-size: 0.85rem; color: var(--color-text-secondary);">
+                        Updating construction status for: <strong id="stageBeneNameLabel"
+                            style="color: var(--color-text-primary);"></strong>
+                    </p>
+
+                    <div class="form-group" style="margin-top: 0.5rem;">
+                        <label>Select Current Stage</label>
+                        <select id="editStageSelect" required>
+                            <option value="Not Started">Not Started</option>
+                            <option value="Basement">Basement</option>
+                            <option value="Lintel">Lintel</option>
+                            <option value="Roof">Roof</option>
+                            <option value="COMPLETED">COMPLETED</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeModal('stageModal')">Cancel</button>
+                    <button type="submit" class="btn-submit" id="saveStageBtn">Update Stage</button>
+                </div>
+            </form>
+        </div>
+    </div>
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3IH6VLVIAI0DsEWqmFpsT036BdzbBCwDxzubZy_Qjaa-ykSLaykROT8wU_cBFFhfSNg/exec";
 
@@ -1713,10 +1769,19 @@
                             <span class="reg-number">Reg: ${bene.regNo || '-'}</span>
                             ${lifeCat ? `<span class="life-badge">${lifeCat}</span>` : ''}
                         </div>
-                        <div class="header-badges">
-                            <span class="ward-badge">Ward: ${bene.ward || '-'}</span>
-                            <span class="status-badge ${stageClass}">${displayStage}</span>
-                        </div>
+                        
+                            <div class="header-badges">
+                                <span class="ward-badge">Ward: ${bene.ward || '-'}</span>
+                                <span class="status-badge ${stageClass} editable-stage" 
+                                    title="Click to edit stage" 
+                                    onclick="openEditStageModal('${bene.beneficiaryId}')">
+                                    ${displayStage}
+                                    <svg class="stage-edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </span>
+                            </div>
                     </div>
 
                     <div class="card-body">
@@ -1797,7 +1862,77 @@
                 container.appendChild(card);
             });
         }
+        // 1. Open the Edit Stage Modal
+        function openEditStageModal(beneId) {
+            const bene = beneficiariesData.find(b => String(b.beneficiaryId) === String(beneId));
+            if (!bene) return;
 
+            document.getElementById("editStageBeneId").value = bene.beneficiaryId;
+            document.getElementById("editStageRegNo").value = bene.regNo || "";
+            document.getElementById("stageBeneNameLabel").innerText = `${bene.name} (Reg: ${bene.regNo || '-'})`;
+
+            // Populate dropdown with existing dynamic stages or default list
+            const stageSelect = document.getElementById("editStageSelect");
+            const currentOptions = Array.from(document.getElementById("stageFilter").options)
+                .map(opt => opt.value)
+                .filter(val => val !== "");
+
+            if (currentOptions.length > 0) {
+                stageSelect.innerHTML = currentOptions.map(st => `<option value="${st}">${st}</option>`).join("");
+            }
+
+            // Match current stage
+            const currentStage = String(bene.stage || "").trim();
+            if (currentStage) {
+                stageSelect.value = currentStage;
+            }
+
+            openModal("stageModal");
+        }
+
+        // 2. Form submission to save updated stage to Google Sheets
+        document.getElementById("stageForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const btn = document.getElementById("saveStageBtn");
+            btn.disabled = true;
+            btn.innerText = "Updating...";
+
+            const beneId = String(document.getElementById("editStageBeneId").value).trim();
+            const regNo = String(document.getElementById("editStageRegNo").value).trim();
+            const newStage = document.getElementById("editStageSelect").value.trim();
+
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({
+                        action: "UPDATE_STAGE",
+                        data: {
+                            beneficiaryId: beneId,
+                            regNo: regNo,
+                            stage: newStage
+                        }
+                    })
+                });
+
+                // Optimistically update the local data instantly
+                const targetBene = beneficiariesData.find(b => String(b.beneficiaryId) === beneId);
+                if (targetBene) {
+                    targetBene.stage = newStage;
+                }
+
+                closeModal("stageModal");
+                applyFilters(); // Re-render updated badges
+
+                // Refresh with latest data from sheets in background
+                await fetchBeneficiariesFromSheets();
+            } catch (err) {
+                alert("Error updating stage: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Update Stage";
+            }
+        });
         // Export to Excel with Mobile Number
         function exportToExcel() {
             const dataset = (filteredData && filteredData.length > 0) ? filteredData : beneficiariesData;
