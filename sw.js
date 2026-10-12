@@ -1,73 +1,60 @@
-const CACHE_NAME = 'mangalam-life-v2';
+const CACHE_NAME = 'mangalam-life-v2'; // Bump version
 
-// Static assets needed to run the app UI
 const STATIC_ASSETS = [
-  './',
-  './index.html',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
 ];
 
-// Install Event: Pre-cache static UI assets
 self.addEventListener('install', (event) => {
+  self.skipWaiting(); // Force active immediately without waiting for tabs to close
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
-  self.skipWaiting();
 });
 
-// Activate Event: Clear outdated caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            return caches.delete(key);
+            return caches.delete(key); // Remove previous caches
           }
         })
       );
     })
   );
-  self.clients.claim();
+  return self.clients.claim(); // Take control of all open clients immediately
 });
 
-// Fetch Event: Network-first for Google Script API, Cache-first for UI shell
 self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
 
-  // Bypass cache completely for Google Apps Script live endpoints
+  // 1. Bypass cache completely for Google Apps Script live endpoints
   if (requestUrl.hostname.includes('script.google.com') || requestUrl.hostname.includes('script.googleusercontent.com')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // 2. NETWORK-FIRST for HTML / Navigation requests (always fetches latest index.html)
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return new Response(
-          JSON.stringify({ status: 'error', message: 'Offline: Cannot sync with Google Sheets while offline.' }),
-          { headers: { 'Content-Type': 'application/json' } }
-        );
-      })
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request)) // Fallback to cached index.html only if completely offline
     );
     return;
   }
 
-  // Cache-first falling back to network for all local UI and static CDN assets
+  // 3. CACHE-FIRST for fonts, scripts, and static files
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
-        }
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-        return networkResponse;
-      });
+      return cachedResponse || fetch(event.request);
     })
   );
 });
